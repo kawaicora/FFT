@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:AvaloniaFFTApp.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="AvaloniaFFTApp.Views.MainView"
+             x:DataType="vm:MainViewModel">
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+         to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainViewModel />
+  </Design.DataContext>
+    <Grid>
+	    <StackPanel Orientation="Horizontal" Spacing="10" Margin="20">
+			<!-- 下拉框控件，ItemsSource 绑定到数据源，SelectedItem 绑定到选中项 -->
+			<ComboBox x:Name="AudioTypeSelectBox" ItemsSource="{Binding Items}"
+					    SelectedItem="{Binding SelectedItem}"
+					    HorizontalAlignment="Left" Width="100"
+						SelectionChanged="AudioTypeSelectBox_SelectionChanged"/>
+			<!-- 文本块用于显示选中项 -->
+			<TextBlock x:Name="AudioTypeSelectText" Text="{Binding SelectedItem}" Margin="0,10,0,0"/>
+		    <!-- 下拉框控件，ItemsSource 绑定到数据源，SelectedItem 绑定到选中项 -->
+		    <ComboBox x:Name="DeviceSelectBox" ItemsSource="{Binding Items}"
+					    SelectedItem="{Binding SelectedItem}"
+					    HorizontalAlignment="Left" Width="300"
+						SelectionChanged="DeviceSelectBox_SelectionChanged"/>
+		    <!-- 文本块用于显示选中项 -->
+		    <TextBlock x:Name="DeviceSelectText" Text="{Binding SelectedItem}" Margin="0,10,0,0"/>
+
+
+
+			<!-- 下拉框控件，ItemsSource 绑定到数据源，SelectedItem 绑定到选中项 -->
+			<ComboBox x:Name="ChannelSelectBox" IsVisible="False" ItemsSource="{Binding Items}"
+					    SelectedItem="{Binding SelectedItem}"
+					    HorizontalAlignment="Left" Width="300" SelectionChanged="ChannelSelectBox_SelectionChanged"/>
+			<!-- 文本块用于显示选中项 -->
+			<TextBlock x:Name="ChannelSelectText" Text="{Binding SelectedItem}" IsVisible="False" Margin="0,10,0,0"/>
+			
+	    </StackPanel>
+        <Canvas x:Name="canvas" />
+    </Grid>  
+  </UserControl>

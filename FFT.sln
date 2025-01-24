@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.12.35707.178
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "解决方案项", "解决方案项", "{F7F85BF0-44E0-4EB8-A0DA-E3C8814EE812}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AudioManager", "AudioManager\AudioManager.csproj", "{D2E7DFEC-9C1A-4E0C-97E7-97734B722C33}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaFFTApp", "AvaloniaFFTApp\AvaloniaFFTApp.csproj", "{6626DAEA-D7BA-44D6-BC71-6B2F3C406F6F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaFFTApp.Desktop", "AvaloniaFFTApp.Desktop\AvaloniaFFTApp.Desktop.csproj", "{A6B2A2C8-6702-413E-9799-B286284183F7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D2E7DFEC-9C1A-4E0C-97E7-97734B722C33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D2E7DFEC-9C1A-4E0C-97E7-97734B722C33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D2E7DFEC-9C1A-4E0C-97E7-97734B722C33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D2E7DFEC-9C1A-4E0C-97E7-97734B722C33}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6626DAEA-D7BA-44D6-BC71-6B2F3C406F6F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6626DAEA-D7BA-44D6-BC71-6B2F3C406F6F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6626DAEA-D7BA-44D6-BC71-6B2F3C406F6F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6626DAEA-D7BA-44D6-BC71-6B2F3C406F6F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A6B2A2C8-6702-413E-9799-B286284183F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6B2A2C8-6702-413E-9799-B286284183F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6B2A2C8-6702-413E-9799-B286284183F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6B2A2C8-6702-413E-9799-B286284183F7}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
