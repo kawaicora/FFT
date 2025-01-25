@@ -38,11 +38,11 @@ namespace AvaloniaFFTApp.Views
         private int sampleRate = 48000;
         double yScale = 8;
         int zeroPadSize = 16384;
-        int windowSize = 512;
+        int windowSize = 4096;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
-        const double maxFrequency =3000;
-        bool drawRectangles =false;
+        const double maxFrequency = 3000;
+        bool drawRectangles = false;
         double rectangleWidth = 6;
         private IBinding iBinding;
         private const int consoleWidth = 800;
@@ -63,9 +63,11 @@ namespace AvaloniaFFTApp.Views
                 audioTypeComboBox.ItemsSource = new AvaloniaList<string>();
             }
             var items = audioTypeComboBox.ItemsSource as AvaloniaList<string>;
+
             if (items == null) {
                 return;
             }
+            items.Clear();
             items.Add("WASAPI");
             items.Add("ASIO");
 
@@ -98,10 +100,12 @@ namespace AvaloniaFFTApp.Views
                 {
                     deviceComboBox.ItemsSource = new AvaloniaList<string>();
                 }
+                
                 var items = deviceComboBox.ItemsSource as AvaloniaList<string>;
-
+                
                 if (items != null)
                 {
+                    items.Clear();
                     switch (audioType)
                     {
                         case AudioType.ASIO:
@@ -145,36 +149,35 @@ namespace AvaloniaFFTApp.Views
                         }
                         asio = new ASIO(selectedItem, sampleRate);//初始化ASIO
                         asio.onDataRecevice += fft.OnDataRecevice;  //绑定FFT方法到ASIO委托变量
-                        
 
-                        if (selectedItem != null)
+
+                        var channelComboBox = this.Find<ComboBox>("ChannelSelectBox");
+                        // 绑定 ComboBox 的 ItemsSource 属性到 ViewModel 的 ComboBoxItems 属性
+                        if (channelComboBox != null && channelComboBox.ItemsSource == null)
                         {
+                            channelComboBox.ItemsSource = new AvaloniaList<string>();
+                            var items = channelComboBox.ItemsSource as AvaloniaList<string>;
+                            if (items == null) {
 
-
-                            var channelComboBox = this.Find<ComboBox>("ChannelSelectBox");
-                            // 绑定 ComboBox 的 ItemsSource 属性到 ViewModel 的 ComboBoxItems 属性
-                            if (channelComboBox != null && channelComboBox.ItemsSource == null)
+                                return;
+                            }
+                            items.Clear();
+                            var outputChannels = asio.GetAllOutputChannel();
+                            foreach (var item in outputChannels)
                             {
-                                channelComboBox.ItemsSource = new AvaloniaList<string>();
-                                var items = channelComboBox.ItemsSource as AvaloniaList<string>;
-                                var outputChannels = asio.GetAllOutputChannel();
-                                foreach (var item in outputChannels)
+                                if (!string.IsNullOrEmpty(item) && items != null)
                                 {
-                                    if (!string.IsNullOrEmpty(item) && items != null)
-                                    {
-                                        items.Add(item);
-                                    }
+                                    items.Add(item);
+                                }
 
-                                }
-                                channelComboBox.IsVisible = true;
-                                var channelSelectText = this.Find<TextBlock>("ChannelSelectText");
-                                if (channelSelectText != null)
-                                {
-                                    channelSelectText.IsVisible = true;
-                                }
+                            }
+                            channelComboBox.IsVisible = true;
+                            var channelSelectText = this.Find<TextBlock>("ChannelSelectText");
+                            if (channelSelectText != null)
+                            {
+                                channelSelectText.IsVisible = true;
                             }
                         }
-
 
 
                         break;
@@ -217,6 +220,8 @@ namespace AvaloniaFFTApp.Views
                 var currentChannelIndexOffset = Array.IndexOf(asio.GetAllOutputChannel(), selectedItem);
                 asio.Stop();
                 asio.Play(currentChannelIndexOffset);
+        
+
                 // 启动一个后台任务来更新 FFT 数据
                 Task.Run(async () =>
                 {
@@ -225,7 +230,7 @@ namespace AvaloniaFFTApp.Views
                         try
                         {
                             UpdateData(fft.spectrumData);
-                            Thread.Sleep(1000 / 15);
+                            Thread.Sleep(1000 / 24);
                         }
                         catch (Exception ex)
                         {

@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaFFTApp", "AvaloniaF
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaFFTApp.Desktop", "AvaloniaFFTApp.Desktop\AvaloniaFFTApp.Desktop.csproj", "{A6B2A2C8-6702-413E-9799-B286284183F7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp", "ConsoleApp\ConsoleApp.csproj", "{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -29,8 +31,15 @@ Global
 		{A6B2A2C8-6702-413E-9799-B286284183F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A6B2A2C8-6702-413E-9799-B286284183F7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A6B2A2C8-6702-413E-9799-B286284183F7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{4783B2AD-AFAA-4CC3-8C0F-D1D314B215A5} = {F7F85BF0-44E0-4EB8-A0DA-E3C8814EE812}
 	EndGlobalSection
 EndGlobal

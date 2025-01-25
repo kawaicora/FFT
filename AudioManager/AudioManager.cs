@@ -6,6 +6,8 @@ using static AudioManager.FFT;
 using NAudio.CoreAudioApi;
 using NAudio.Wave.SampleProviders;
 using System.Linq;
+using NAudio.CoreAudioApi.Interfaces;
+using System.Runtime.InteropServices;
 
 namespace AudioManager
 {
@@ -95,7 +97,7 @@ namespace AudioManager
     }
 
 
-  
+
 
     public class WASAPI
     {
@@ -110,10 +112,20 @@ namespace AudioManager
         public WASAPI(string deviceName, int sampleRate = 48000)
         {
             _sampleRate = sampleRate;
-            _device = GetMMDeviceByName(deviceName);
-            if (_device == null) {
+            if (deviceName == "")
+            {
+                var deviceEnumerator = new MMDeviceEnumerator();
+                _device = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.All, Role.Multimedia);
+            }
+            else
+            {
+                _device = GetMMDeviceByName(deviceName);
+            }
+
+            if (_device == null)
+            {
                 throw new Exception("this._device is null");
-                
+
             }
             // 初始化 WASAPI 捕获
             _wasapiCapture = new WasapiCapture(_device);
@@ -126,7 +138,7 @@ namespace AudioManager
             };
             // 初始化 WASAPI 输出
             _wasapiOut = new WasapiOut(_device, AudioClientShareMode.Shared, false, 100);
-          
+
         }
 
         private void OnDataAvailable(object sender, WaveInEventArgs e)
@@ -141,7 +153,9 @@ namespace AudioManager
             if (onDataRecevice != null)
             {
                 onDataRecevice(floatBuffer);
-            }else {
+            }
+            else
+            {
                 throw new Exception("onDataRecevice is null");
             }
         }
@@ -172,6 +186,7 @@ namespace AudioManager
             {
                 var deviceEnumerator = new MMDeviceEnumerator();
                 var deviceEnumeratorArray = deviceEnumerator.EnumerateAudioEndPoints(DataFlow.All, DeviceState.Active).ToArray();
+
                 string[] devices = new string[deviceEnumeratorArray.Length];
                 for (int i = 0; i < deviceEnumeratorArray.Length; i++)
                 {
@@ -181,7 +196,8 @@ namespace AudioManager
             }
             catch (Exception ex)
             {
-                return new string[0];
+                throw (ex);
+                //return new string[0];
             }
         }
 
@@ -210,15 +226,17 @@ namespace AudioManager
 
 
 
-    public class ASIO {
-    
+    public class ASIO
+    {
+
         private AsioOut _asioOut;               // ASIO Output
         private BufferedWaveProvider _waveProvider;
         private int _sampleRate;
         private string _asioDriverName;
         public delegate void OnDataRecevice(float[] buffer);
         public OnDataRecevice? onDataRecevice;
-        public ASIO(string asioDriverName, int sampleRate = 48000) {
+        public ASIO(string asioDriverName, int sampleRate = 48000)
+        {
             _sampleRate = sampleRate;
             // Initialize ASIO driver
             _asioOut = new AsioOut(asioDriverName);
@@ -239,12 +257,13 @@ namespace AudioManager
             float[] buffer = new float[_sampleRate];
             int size = e.GetAsInterleavedSamples(buffer);
             Array.Resize(ref buffer, size);
-            if (onDataRecevice != null) {
+            if (onDataRecevice != null)
+            {
                 onDataRecevice(buffer);
             }
-            
 
-           
+
+
         }
         public AsioOut asioOut
         {
@@ -298,14 +317,14 @@ namespace AudioManager
             MIXER
         }
 
-        
-        
+
+
         private SlidingWindow _slidingWindowLeft = null;
         private SlidingWindow _slidingWindowRight = null;
-        private FillDataType _fillDataType = FillDataType.NONE;
+        private FillDataType _fillDataType = FillDataType.MIXER;
         private ComplexArrayPool _complexArrayPool;
         private int _zeroPadSize = 16384;
-        private int _slidingWindowSize = 512;
+        private int _slidingWindowSize = 4096;
         private int _sampleRate = 48000;
 
         Complex[]? leftComplex = null;
@@ -322,14 +341,13 @@ namespace AudioManager
         private SpectrumData _spectrumData;
 
         // Constructor
-        public FFT( int sampleRate = 48000)
+        public FFT(int sampleRate = 48000)
         {
 
-            _sampleRate = sampleRate;       
-            _slidingWindowLeft = new SlidingWindow(_slidingWindowSize);
-            _slidingWindowRight = new SlidingWindow(_slidingWindowSize);
+            _sampleRate = sampleRate;
+          
             _spectrumData = new SpectrumData();
-     
+
 
         }
         public FillDataType fillDataType
@@ -338,26 +356,31 @@ namespace AudioManager
             {
                 _fillDataType = value;
             }
-            get {
+            get
+            {
                 return _fillDataType;
             }
         }
-        public int zeroPadSize {
-            set {
+        public int zeroPadSize
+        {
+            set
+            {
                 _zeroPadSize = value;
             }
         }
 
-        public int slidingWindowSize {
-            set {
+        public int slidingWindowSize
+        {
+            set
+            {
                 _slidingWindowSize = value;
             }
         }
         ~FFT()
         {
-            
+
         }
-   
+
         public SpectrumData spectrumData { get { return _spectrumData; } }
 
 
@@ -512,7 +535,7 @@ namespace AudioManager
                 data[i] *= window;
             }
         }
-       
+
 
 
         // 执行FFT
@@ -585,30 +608,34 @@ namespace AudioManager
         // 处理 FFT
         private void ProcessFFT(float[] leftChannel, float[] rightChannel)
         {
-            if (_spectrumData.frequencies == null) {
-                _spectrumData.frequencies = new float[(leftChannel.Length + rightChannel.Length)/2];
+            if (_spectrumData.frequencies == null)
+            {
+                _spectrumData.frequencies = new float[(leftChannel.Length + rightChannel.Length) / 2];
                 _spectrumData.frequencies = CalculateFrequencies((leftChannel.Length + rightChannel.Length) / 2, _sampleRate);
             }
-            if (_spectrumData.amplitudesLeft == null) {
+            if (_spectrumData.amplitudesLeft == null)
+            {
                 _spectrumData.amplitudesLeft = new float[leftChannel.Length];
             }
-            if (_spectrumData.amplitudesRight == null) {
+            if (_spectrumData.amplitudesRight == null)
+            {
                 _spectrumData.amplitudesRight = new float[rightChannel.Length];
             }
-           
 
-            if (_complexArrayPool == null) {
+
+            if (_complexArrayPool == null)
+            {
                 _complexArrayPool = new ComplexArrayPool((leftChannel.Length + rightChannel.Length) / 2, 10);  // Pool size can be adjusted
 
             }
 
             // Initialize the ComplexArrayPool to avoid allocating new arrays frequently
 
-          
+
             leftComplex = _complexArrayPool.Rent();
             rightComplex = _complexArrayPool.Rent();
 
-            for (int i = 0; i < (leftChannel.Length + rightChannel.Length )/2; i++)
+            for (int i = 0; i < (leftChannel.Length + rightChannel.Length) / 2; i++)
             {
                 leftComplex[i] = new Complex(leftChannel[i], 0);
                 rightComplex[i] = new Complex(rightChannel[i], 0);
@@ -646,13 +673,21 @@ namespace AudioManager
 
             _spectrumData.volumeLeft = CalculateVolume(leftChannel, 0);
             _spectrumData.volumeRight = CalculateVolume(rightChannel, 1);
+            if (_slidingWindowLeft == null) {
+                _slidingWindowLeft = new SlidingWindow(_slidingWindowSize);
+            }
+            if (_slidingWindowRight == null) {
+                _slidingWindowRight = new SlidingWindow(_slidingWindowSize);
+            }
+            
             float[] extCL = new float[_zeroPadSize];
             float[] extCR = new float[_zeroPadSize];
-            switch (_fillDataType ) {
-                
+            switch (_fillDataType)
+            {
+
 
                 case FillDataType.ZEROPAD:
-                
+
                     Array.Copy(leftChannel, extCL, leftChannel.Length);
                     Array.Copy(rightChannel, extCR, rightChannel.Length);
                     try
@@ -690,10 +725,13 @@ namespace AudioManager
                     }
                     break;
                 case FillDataType.NONE:
-                    try{
+                    try
+                    {
                         ProcessFFT(leftChannel, rightChannel);
-                    }catch (Exception ex) { 
-                    
+                    }
+                    catch (Exception ex)
+                    {
+
                     }
                     break;
             }
