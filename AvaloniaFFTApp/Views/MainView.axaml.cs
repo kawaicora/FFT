@@ -24,8 +24,6 @@ namespace AvaloniaFFTApp.Views
         enum AudioType { 
             ASIO,
             WASAPI
-            
-
         }
         private AudioType audioType; 
         private FFT fft;
@@ -36,12 +34,12 @@ namespace AvaloniaFFTApp.Views
         private float[] amplitudesLeft;
         private float[] amplitudesRight;
         private int sampleRate = 48000;
-        double yScale = 8;
-        int zeroPadSize = 16384;
+        double yScale = 4;
+        int zeroPadSize = 8196;
         int windowSize = 4096;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
-        const double maxFrequency = 3000;
+        const double maxFrequency = 24000;
         bool drawRectangles = false;
         double rectangleWidth = 6;
         private IBinding iBinding;
@@ -138,7 +136,7 @@ namespace AvaloniaFFTApp.Views
                 fft = new FFT(sampleRate); //初始化FFT
                 fft.slidingWindowSize = windowSize;
                 fft.zeroPadSize = zeroPadSize;
-                fft.fillDataType = FillDataType.MIXER;
+                fft.fillDataType = FillDataType.SILDINGWINDOW;
                 switch (audioType)
                 {
 
@@ -148,7 +146,7 @@ namespace AvaloniaFFTApp.Views
                             return;
                         }
                         asio = new ASIO(selectedItem, sampleRate);//初始化ASIO
-                        asio.onDataRecevice += fft.OnDataRecevice;  //绑定FFT方法到ASIO委托变量
+                        asio.onDataRecevice = fft.OnDataRecevice;  //绑定FFT方法到ASIO委托变量
 
 
                         var channelComboBox = this.Find<ComboBox>("ChannelSelectBox");
@@ -188,24 +186,7 @@ namespace AvaloniaFFTApp.Views
                         wasapi.onDataRecevice += fft.OnDataRecevice;
                         wasapi.Stop();
                         wasapi.Play();
-
-                        // 启动一个后台任务来更新 FFT 数据
-                        Task.Run(async () =>
-                        {
-                            while (true)
-                            {
-                                try
-                                {
-                                    UpdateData(fft.spectrumData);
-                                    Thread.Sleep(1000 / 24);
-                                }
-                                catch (Exception ex)
-                                {
-                                }
-                            }
-                        });
-
-
+                        StartDrawTask();
                         break;
                 }
             }
@@ -220,24 +201,29 @@ namespace AvaloniaFFTApp.Views
                 var currentChannelIndexOffset = Array.IndexOf(asio.GetAllOutputChannel(), selectedItem);
                 asio.Stop();
                 asio.Play(currentChannelIndexOffset);
-        
+                StartDrawTask();
 
-                // 启动一个后台任务来更新 FFT 数据
-                Task.Run(async () =>
-                {
-                    while (true)
-                    {
-                        try
-                        {
-                            UpdateData(fft.spectrumData);
-                            Thread.Sleep(1000 / 24);
-                        }
-                        catch (Exception ex)
-                        {
-                        }
-                    }
-                });
+
+
             }
+        }
+
+        private void StartDrawTask() {
+            // 启动一个后台任务来更新 FFT 数据
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        UpdateData(fft.spectrumData);
+                        Thread.Sleep(1000 / 15);
+                    }
+                    catch (Exception ex)
+                    {
+                    }
+                }
+            });
         }
         private void InitializeComponent()
         {

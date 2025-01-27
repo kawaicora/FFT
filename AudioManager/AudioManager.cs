@@ -232,7 +232,7 @@ namespace AudioManager
         private AsioOut _asioOut;               // ASIO Output
         private BufferedWaveProvider _waveProvider;
         private int _sampleRate;
-        private string _asioDriverName;
+        //private string _asioDriverName;
         public delegate void OnDataRecevice(float[] buffer);
         public OnDataRecevice? onDataRecevice;
         public ASIO(string asioDriverName, int sampleRate = 48000)
@@ -312,16 +312,15 @@ namespace AudioManager
         public enum FillDataType
         {
             SILDINGWINDOW,
-            ZEROPAD,
-            NONE,
-            MIXER
+            NONE
+  
         }
 
 
 
         private SlidingWindow _slidingWindowLeft = null;
         private SlidingWindow _slidingWindowRight = null;
-        private FillDataType _fillDataType = FillDataType.MIXER;
+        private FillDataType _fillDataType = FillDataType.SILDINGWINDOW;
         private ComplexArrayPool _complexArrayPool;
         private int _zeroPadSize = 16384;
         private int _slidingWindowSize = 4096;
@@ -621,8 +620,6 @@ namespace AudioManager
             {
                 _spectrumData.amplitudesRight = new float[rightChannel.Length];
             }
-
-
             if (_complexArrayPool == null)
             {
                 _complexArrayPool = new ComplexArrayPool((leftChannel.Length + rightChannel.Length) / 2, 10);  // Pool size can be adjusted
@@ -684,56 +681,19 @@ namespace AudioManager
             float[] extCR = new float[_zeroPadSize];
             switch (_fillDataType)
             {
-
-
-                case FillDataType.ZEROPAD:
-
-                    Array.Copy(leftChannel, extCL, leftChannel.Length);
-                    Array.Copy(rightChannel, extCR, rightChannel.Length);
-                    try
-                    {
-                        ProcessFFT(extCL, extCR);
-                    }
-                    catch (Exception ex) { }
-                    break;
-                case FillDataType.MIXER:
-
-
-
-                    _slidingWindowLeft.AddData(leftChannel);
-                    _slidingWindowRight.AddData(rightChannel);
-
-                    Array.Copy(_slidingWindowLeft.GetWindow().ToArray(), extCL, _slidingWindowLeft.WindowSize);
-                    Array.Copy(_slidingWindowRight.GetWindow().ToArray(), extCR, _slidingWindowRight.WindowSize);
-                    try
-                    {
-                        ProcessFFT(extCL, extCR);
-                    }
-                    catch (Exception ex) { }
-                    break;
                 case FillDataType.SILDINGWINDOW:
                     _zeroPadSize = _slidingWindowSize;
                     _slidingWindowLeft.AddData(leftChannel);
                     _slidingWindowRight.AddData(rightChannel);
-                    try
-                    {
-                        ProcessFFT(_slidingWindowLeft.GetWindow(), _slidingWindowRight.GetWindow());
-                    }
-                    catch (Exception ex)
-                    {
-
-                    }
+                 
+                    ProcessFFT(_slidingWindowLeft.GetWindow(), _slidingWindowRight.GetWindow());
+              
+               
                     break;
                 case FillDataType.NONE:
-                    try
-                    {
-                        ProcessFFT(leftChannel, rightChannel);
-                    }
-                    catch (Exception ex)
-                    {
-
-                    }
+                    ProcessFFT(leftChannel, rightChannel);
                     break;
+             
             }
         }
     }
