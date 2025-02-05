@@ -96,8 +96,139 @@ namespace AudioManager
         }
     }
 
+    public class DirectSound
+    {
+        private WaveInEvent _waveIn;
+        private DirectSoundOut _directSoundOut;
+        private BufferedWaveProvider _waveProvider;
+        private int _sampleRate;
+        private WaveInCapabilities? _device;
+        public delegate void OnDataRecevice(float[] buffer);
+        public OnDataRecevice? onDataRecevice;
 
+        public DirectSound(string deviceName, int sampleRate = 48000)
+        {
+            _sampleRate = sampleRate;
+            if (string.IsNullOrEmpty(deviceName))
+            {
+                _device = WaveInEvent.GetCapabilities(0); // 获取默认设备
+            }
+            else
+            {
+                _device = GetWaveInDeviceByName(deviceName);
+            }
 
+            if (_device == null)
+            {
+                throw new Exception("this._device is null");
+            }
+
+            // 初始化 WaveIn 捕获
+            _waveIn = new WaveInEvent
+            {
+                DeviceNumber = GetDeviceNumberByName(deviceName),
+                WaveFormat = new WaveFormat(_sampleRate, 16, 2)
+            };
+            _waveIn.DataAvailable += OnDataAvailable;
+
+            // 初始化缓冲区
+            _waveProvider = new BufferedWaveProvider(new WaveFormat(_sampleRate, 16, 2))
+            {
+                DiscardOnBufferOverflow = true
+            };
+
+            // 初始化 DirectSound 输出
+            _directSoundOut = new DirectSoundOut();
+            _directSoundOut.Init(_waveProvider);
+        }
+
+        private void OnDataAvailable(object sender, WaveInEventArgs e)
+        {
+            byte[] buffer = e.Buffer;
+            int bytesRecorded = e.BytesRecorded;
+            float[] floatBuffer = new float[bytesRecorded / 4]; // 假设 32 位浮点数
+            for (int i = 0; i < floatBuffer.Length; i++)
+            {
+                floatBuffer[i] = BitConverter.ToSingle(buffer, i * 4);
+            }
+            onDataRecevice?.Invoke(floatBuffer);
+        }
+
+        public DirectSoundOut directSoundOut
+        {
+            get
+            {
+                return _directSoundOut;
+            }
+        }
+
+        public void Stop()
+        {
+            _waveIn.StopRecording();
+            _directSoundOut.Stop();
+        }
+
+        public void Play()
+        {
+            _waveIn.StartRecording();
+            _directSoundOut.Play();
+        }
+
+        public static string[] GetAllDirectSoundDevices()
+        {
+            try
+            {
+                var deviceCount = WaveInEvent.DeviceCount;
+                var devices = new List<string>();
+                for (int i = 0; i < deviceCount; i++)
+                {
+                    var deviceInfo = WaveInEvent.GetCapabilities(i);
+                    devices.Add(deviceInfo.ProductName);
+                }
+                return devices.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+        }
+
+        public WaveInCapabilities? GetWaveInDeviceByName(string deviceName)
+        {
+            try
+            {
+                var deviceCount = WaveInEvent.DeviceCount;
+                for (int i = 0; i < deviceCount; i++)
+                {
+                    var deviceInfo = WaveInEvent.GetCapabilities(i);
+                    if (deviceInfo.ProductName == deviceName)
+                    {
+                        return deviceInfo;
+                    }
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _ = ex;
+                return null;
+            }
+        }
+
+        private int GetDeviceNumberByName(string deviceName)
+        {
+            var deviceCount = WaveInEvent.DeviceCount;
+            for (int i = 0; i < deviceCount; i++)
+            {
+                var deviceInfo = WaveInEvent.GetCapabilities(i);
+                if (deviceInfo.ProductName == deviceName)
+                {
+                    return i;
+                }
+            }
+            return 0; // 默认设备
+        }
+    }
 
     public class WASAPI
     {

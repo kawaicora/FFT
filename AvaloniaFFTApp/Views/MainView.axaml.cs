@@ -23,12 +23,14 @@ namespace AvaloniaFFTApp.Views
     {
         enum AudioType { 
             ASIO,
+            DirectSound,
             WASAPI
         }
         private AudioType audioType; 
         private FFT fft;
         private ASIO asio;
         private WASAPI wasapi;
+        DirectSound directSound;
         private float[] frequenciesLeft;
         private float[] frequenciesRight;
         private float[] amplitudesLeft;
@@ -39,7 +41,7 @@ namespace AvaloniaFFTApp.Views
         int windowSize = 4096;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
-        const double maxFrequency = 24000;
+        const double maxFrequency = 3000;
         bool drawRectangles = false;
         double rectangleWidth = 6;
         private IBinding iBinding;
@@ -48,14 +50,14 @@ namespace AvaloniaFFTApp.Views
         public MainView()
         {
             InitializeComponent();
-            audioType = AudioType.WASAPI;
+            audioType = AudioType.DirectSound;
 
             var audioTypeComboBox = this.Find<ComboBox>("AudioTypeSelectBox");
 
             if (audioTypeComboBox == null) {
                 return;
             }
-
+            audioTypeComboBox.ItemsSource = null;
             if (audioTypeComboBox.ItemsSource == null)
             {
                 audioTypeComboBox.ItemsSource = new AvaloniaList<string>();
@@ -66,6 +68,7 @@ namespace AvaloniaFFTApp.Views
                 return;
             }
             items.Clear();
+            items.Add("DirectSound");
             items.Add("WASAPI");
             items.Add("ASIO");
 
@@ -86,13 +89,17 @@ namespace AvaloniaFFTApp.Views
                     case "WASAPI":
                         audioType = AudioType.WASAPI;
                         break;
-                }
+                    case "DirectSound":
+                        audioType = AudioType.DirectSound;
+                        break;
+                }   
 
                 var deviceComboBox = this.Find<ComboBox>("DeviceSelectBox");
                 if (deviceComboBox == null)
                 {
                     return;
                 }
+                deviceComboBox.ItemsSource = null;
                 // 绑定 ComboBox 的 ItemsSource 属性到 ViewModel 的 ComboBoxItems 属性
                 if (deviceComboBox.ItemsSource == null)
                 {
@@ -119,6 +126,12 @@ namespace AvaloniaFFTApp.Views
                                 //添加音频设备选项
                                 items.Add(item);
 
+                            }
+                            break;
+                        case AudioType.DirectSound:
+                            foreach (var item in DirectSound.GetAllDirectSoundDevices())
+                            {
+                                items.Add(item);
                             }
                             break;
                     }
@@ -186,6 +199,13 @@ namespace AvaloniaFFTApp.Views
                         wasapi.onDataRecevice += fft.OnDataRecevice;
                         wasapi.Stop();
                         wasapi.Play();
+                        StartDrawTask();
+                        break;
+                    case AudioType.DirectSound:
+                        directSound = new DirectSound(selectedItem, sampleRate);
+                        directSound.onDataRecevice += fft.OnDataRecevice;
+                        directSound.Stop();
+                        directSound.Play();
                         StartDrawTask();
                         break;
                 }
