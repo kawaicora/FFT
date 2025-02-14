@@ -41,7 +41,7 @@ namespace AvaloniaFFTApp.Views
         int windowSize = 4096;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
-        const double maxFrequency = 3000;
+        const double maxFrequency = 4096;
         bool drawRectangles = false;
         double rectangleWidth = 6;
         private IBinding iBinding;
@@ -267,7 +267,6 @@ namespace AvaloniaFFTApp.Views
         }
         private void DrawGraph()
         {
-           
             var canvas = this.FindControl<Canvas>("canvas");
             if (canvas != null)
             {
@@ -278,30 +277,34 @@ namespace AvaloniaFFTApp.Views
                     return; // 如果数据无效，直接返回
 
                 int dataLength = frequenciesLeft.Length;
-                
+
                 // 计算 X 轴缩放比例：画布宽度 / (最大频率 - 最小频率)
                 double xScale = canvas.Bounds.Width / (maxFrequency - minFrequency);
 
                 // Y 轴缩放比例：画布高度 / 2
-                
+
+                // 对振幅数据进行插值处理
+                int targetLength = dataLength * 4; // 目标点数，可以根据需要调整
+                float[] interpolatedAmplitudesLeft = InterpolateData(frequenciesLeft, amplitudesLeft, targetLength);
+                float[] interpolatedFrequenciesLeft = InterpolateData(frequenciesLeft, frequenciesLeft, targetLength);
+      
 
                 if (drawRectangles)
                 {
                     // 绘制方块
-                    for (int i = 0; i < dataLength; i++)
+                    for (int i = 0; i < targetLength; i++)
                     {
                         // 计算当前数据点的频率值
-                        double frequency = frequenciesLeft[i];
+                        double frequency = interpolatedFrequenciesLeft[i];
 
                         if (frequency >= minFrequency && frequency <= maxFrequency)
                         {
                             // 映射频率值到 X 坐标
-                            //double x = (frequency - minFrequency) * xScale;
+                            double x = (frequency - minFrequency) * xScale;
 
-                            double x = (frequency - minFrequency ) * xScale ;
                             // 映射振幅值到 Y 坐标
-                            double height = amplitudesLeft[i] * yScale;
-                            double y = canvas.Bounds.Height  - height;
+                            double height = interpolatedAmplitudesLeft[i] * yScale;
+                            double y = canvas.Bounds.Height - height;
 
                             var rectangle = new Rectangle
                             {
@@ -325,10 +328,10 @@ namespace AvaloniaFFTApp.Views
                     };
 
                     // 绘制振幅线条：筛选并映射到画布
-                    for (int i = 0; i < dataLength; i++)
+                    for (int i = 0; i < targetLength; i++)
                     {
                         // 计算当前数据点的频率值
-                        double frequency = frequenciesLeft[i];
+                        double frequency = interpolatedFrequenciesLeft[i];
 
                         if (frequency >= minFrequency && frequency <= maxFrequency)
                         {
@@ -336,7 +339,7 @@ namespace AvaloniaFFTApp.Views
                             double x = (frequency - minFrequency) * xScale;
 
                             // 映射振幅值到 Y 坐标
-                            double y = canvas.Bounds.Height - 5 - amplitudesLeft[i] * yScale;
+                            double y = canvas.Bounds.Height - 5 - interpolatedAmplitudesLeft[i] * yScale;
 
                             amplitudeLine.Points.Add(new Point(x, y));
                         }
@@ -344,18 +347,11 @@ namespace AvaloniaFFTApp.Views
                     // 添加到画布
                     canvas.Children.Add(amplitudeLine);
                 }
-
-                //// 可选：添加坐标轴
-                //var axis = new Line
-                //{
-                //    Stroke = Brushes.Black,
-                //    StrokeThickness = 1,
-                //    StartPoint = new Point(0, canvas.Bounds.Height - 5),
-                //    EndPoint = new Point(canvas.Bounds.Width, canvas.Bounds.Height - 5)
-                //};
-                //canvas.Children.Add(axis);
             }
         }
+
+
+
     }
 }
 

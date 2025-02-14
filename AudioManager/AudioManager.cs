@@ -8,6 +8,8 @@ using NAudio.Wave.SampleProviders;
 using System.Linq;
 using NAudio.CoreAudioApi.Interfaces;
 using System.Runtime.InteropServices;
+using NWaves.Audio;
+using WaveFormat = NAudio.Wave.WaveFormat;
 
 namespace AudioManager
 {
@@ -105,10 +107,11 @@ namespace AudioManager
         private WaveInCapabilities? _device;
         public delegate void OnDataRecevice(float[] buffer);
         public OnDataRecevice? onDataRecevice;
-
+        WaveFormat waveFormat;
         public DirectSound(string deviceName, int sampleRate = 48000)
         {
             _sampleRate = sampleRate;
+            waveFormat = new WaveFormat(_sampleRate, 16, 2);
             if (string.IsNullOrEmpty(deviceName))
             {
                 _device = WaveInEvent.GetCapabilities(0); // 获取默认设备
@@ -127,12 +130,12 @@ namespace AudioManager
             _waveIn = new WaveInEvent
             {
                 DeviceNumber = GetDeviceNumberByName(deviceName),
-                WaveFormat = new WaveFormat(_sampleRate, 16, 2)
+                WaveFormat = waveFormat
             };
             _waveIn.DataAvailable += OnDataAvailable;
 
             // 初始化缓冲区
-            _waveProvider = new BufferedWaveProvider(new WaveFormat(_sampleRate, 16, 2))
+            _waveProvider = new BufferedWaveProvider(waveFormat)
             {
                 DiscardOnBufferOverflow = true
             };
@@ -141,19 +144,45 @@ namespace AudioManager
             _directSoundOut = new DirectSoundOut();
             _directSoundOut.Init(_waveProvider);
         }
-
         private void OnDataAvailable(object sender, WaveInEventArgs e)
         {
             byte[] buffer = e.Buffer;
             int bytesRecorded = e.BytesRecorded;
-            float[] floatBuffer = new float[bytesRecorded / 4]; // 假设 32 位浮点数
-            for (int i = 0; i < floatBuffer.Length; i++)
-            {
-                floatBuffer[i] = BitConverter.ToSingle(buffer, i * 4);
-            }
-            onDataRecevice?.Invoke(floatBuffer);
-        }
 
+            // 创建 WaveFormat 对象
+            
+            int bitsPerSample = waveFormat.BitsPerSample;
+
+            // 根据 bitsPerSample 进行转换
+            if (bitsPerSample == 16)
+            {
+                float[] floatBuffer = new float[bytesRecorded / 2];
+                for (int i = 0; i < floatBuffer.Length; i++)
+                {
+                    short value = BitConverter.ToInt16(buffer, i * 2);
+                    floatBuffer[i] = value / 32768f; // 将 16 位整数转换为浮点数
+                }
+                onDataRecevice?.Invoke(floatBuffer);
+            }
+            else if (bitsPerSample == 32)
+            {
+                float[] floatBuffer = new float[bytesRecorded / 4];
+                for (int i = 0; i < floatBuffer.Length; i++)
+                {
+                    float value = BitConverter.ToSingle(buffer, i * 4);
+                    if (float.IsNaN(value))
+                    {
+                        value = 0.0f; // 处理 NaN 值
+                    }
+                    floatBuffer[i] = value;
+                }
+                onDataRecevice?.Invoke(floatBuffer);
+            }
+            else
+            {
+                throw new NotSupportedException($"不支持的位深度: {bitsPerSample}");
+            }
+        }
         public DirectSoundOut directSoundOut
         {
             get
@@ -239,10 +268,11 @@ namespace AudioManager
         private MMDevice? _device;
         public delegate void OnDataRecevice(float[] buffer);
         public OnDataRecevice? onDataRecevice;
-
+        WaveFormat waveFormat;
         public WASAPI(string deviceName, int sampleRate = 48000)
         {
             _sampleRate = sampleRate;
+            waveFormat = new WaveFormat(_sampleRate, 16, 2);
             if (deviceName == "")
             {
                 var deviceEnumerator = new MMDeviceEnumerator();
@@ -255,7 +285,9 @@ namespace AudioManager
 
             if (_device == null)
             {
-                throw new Exception("this._device is null");
+                var deviceEnumerator = new MMDeviceEnumerator();
+                _device = deviceEnumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+
 
             }
             // 初始化 WASAPI 捕获
@@ -263,7 +295,7 @@ namespace AudioManager
             _wasapiCapture.DataAvailable += OnDataAvailable;
 
             // 初始化缓冲区
-            _waveProvider = new BufferedWaveProvider(new WaveFormat(_sampleRate, 16, 2))
+            _waveProvider = new BufferedWaveProvider(waveFormat)
             {
                 DiscardOnBufferOverflow = true
             };
@@ -276,6 +308,10 @@ namespace AudioManager
         {
             byte[] buffer = e.Buffer;
             int bytesRecorded = e.BytesRecorded;
+
+            // 创建 WaveFormat 对象
+
+            int bitsPerSample = waveFormat.BitsPerSample;
             float[] floatBuffer = new float[bytesRecorded / 4]; // 假设 32 位浮点数
             for (int i = 0; i < floatBuffer.Length; i++)
             {
@@ -366,6 +402,7 @@ namespace AudioManager
         //private string _asioDriverName;
         public delegate void OnDataRecevice(float[] buffer);
         public OnDataRecevice? onDataRecevice;
+        WaveFormat waveFormat;
         public ASIO(string asioDriverName, int sampleRate = 48000)
         {
             _sampleRate = sampleRate;
@@ -438,6 +475,73 @@ namespace AudioManager
             return AsioOut.GetDriverNames(); ;
         }
     }
+    public class CubicSpline
+    {
+        private readonly double[] a;
+        private readonly double[] b;
+        private readonly double[] c;
+        private readonly double[] d;
+        private readonly double[] x;
+
+        public CubicSpline(double[] x, double[] y)
+        {
+            int n = x.Length;
+            this.x = x;
+            a = new double[n];
+            b = new double[n];
+            c = new double[n];
+            d = new double[n];
+
+            double[] h = new double[n - 1];
+            double[] alpha = new double[n - 1];
+            for (int i = 0; i < n - 1; i++)
+            {
+                h[i] = x[i + 1] - x[i];
+                if (i > 0)
+                {
+                    alpha[i] = (3 / h[i]) * (y[i + 1] - y[i]) - (3 / h[i - 1]) * (y[i] - y[i - 1]);
+                }
+            }
+
+            double[] l = new double[n];
+            double[] mu = new double[n];
+            double[] z = new double[n];
+            l[0] = 1;
+            mu[0] = 0;
+            z[0] = 0;
+            for (int i = 1; i < n - 1; i++)
+            {
+                l[i] = 2 * (x[i + 1] - x[i - 1]) - h[i - 1] * mu[i - 1];
+                mu[i] = h[i] / l[i];
+                z[i] = (alpha[i] - h[i - 1] * z[i - 1]) / l[i];
+            }
+            l[n - 1] = 1;
+            z[n - 1] = 0;
+            c[n - 1] = 0;
+
+            for (int j = n - 2; j >= 0; j--)
+            {
+                c[j] = z[j] - mu[j] * c[j + 1];
+                b[j] = (y[j + 1] - y[j]) / h[j] - h[j] * (c[j + 1] + 2 * c[j]) / 3;
+                d[j] = (c[j + 1] - c[j]) / (3 * h[j]);
+                a[j] = y[j];
+            }
+        }
+
+        public double Interpolate(double xVal)
+        {
+            int i = Array.BinarySearch(x, xVal);
+            if (i < 0)
+            {
+                i = ~i - 1;
+            }
+            double dx = xVal - x[i];
+            return a[i] + b[i] * dx + c[i] * dx * dx + d[i] * dx * dx * dx;
+        }
+    }
+
+
+
     public class FFT
     {
         public enum FillDataType
@@ -515,7 +619,7 @@ namespace AudioManager
 
 
 
-        // Compute FFT using Cooley-Tukey algorithm
+        // 计算 FFT 使用 Cooley-Tukey 算法
         public Complex[] ComputeFFT(Complex[] data)
         {
             int N = data.Length;
@@ -827,5 +931,49 @@ namespace AudioManager
              
             }
         }
+
+
+        public static float[] InterpolateData(float[] x, float[] y, int targetLength)
+        {
+            float[] interpolatedData = new float[targetLength];
+            double step = (x[x.Length - 1] - x[0]) / (targetLength - 1);
+
+            for (int i = 0; i < targetLength; i++)
+            {
+                double xVal = x[0] + i * step;
+                int j = Array.BinarySearch(x, (float)xVal);
+                if (j < 0)
+                {
+                    j = ~j - 1;
+                }
+
+                if (j >= x.Length - 1)
+                {
+                    interpolatedData[i] = y[x.Length - 1];
+                }
+                else
+                {
+                    double t = (xVal - x[j]) / (x[j + 1] - x[j]);
+                    interpolatedData[i] = (float)((1 - t) * y[j] + t * y[j + 1]);
+                }
+            }
+
+            // 确保频率数组的最后一个元素不为 0
+            if (interpolatedData[targetLength - 1] == 0)
+            {
+                interpolatedData[targetLength - 1] = interpolatedData[targetLength - 2];
+            }
+
+            return interpolatedData;
+        }
+
+
+
     }
+
+
+
+
+
+
 }

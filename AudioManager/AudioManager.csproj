@@ -10,22 +10,22 @@
       <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Asio">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.Asio.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Asio.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Core">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.Core.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Core.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Midi">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.Midi.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Midi.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Wasapi">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.Wasapi.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Wasapi.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.WinMM">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.WinMM.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.WinMM.dll</HintPath>
     </Reference>
     <Reference Include="NWaves">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NWaves.dll</HintPath>
+      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NWaves.dll</HintPath>
     </Reference>
   </ItemGroup>
 
