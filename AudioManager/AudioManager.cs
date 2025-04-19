@@ -2,13 +2,11 @@
 using System;
 using System.Numerics;
 using System.Collections.Generic;
-using static AudioManager.FFT;
+
 using NAudio.CoreAudioApi;
-using NAudio.Wave.SampleProviders;
+
 using System.Linq;
-using NAudio.CoreAudioApi.Interfaces;
-using System.Runtime.InteropServices;
-using NWaves.Audio;
+
 using WaveFormat = NAudio.Wave.WaveFormat;
 
 namespace AudioManager
@@ -547,6 +545,9 @@ namespace AudioManager
         public enum FillDataType
         {
             SILDINGWINDOW,
+            ZEROPAD,
+            SILDINGWINDOW_AND_ZEROPAD,
+            ZEROPAD_AND_SILDINGWINDOW,
             NONE
   
         }
@@ -555,10 +556,11 @@ namespace AudioManager
 
         private SlidingWindow _slidingWindowLeft = null;
         private SlidingWindow _slidingWindowRight = null;
-        private FillDataType _fillDataType = FillDataType.SILDINGWINDOW;
+        private FillDataType _fillDataType = FillDataType.ZEROPAD_AND_SILDINGWINDOW;
         private ComplexArrayPool _complexArrayPool;
-        private int _zeroPadSize = 16384;
-        private int _slidingWindowSize = 4096;
+        //默认配置 是平衡的 
+        private int _zeroPadSize = 8196;
+        private int _slidingWindowSize = 16384;
         private int _sampleRate = 48000;
 
         Complex[]? leftComplex = null;
@@ -618,37 +620,53 @@ namespace AudioManager
         public SpectrumData spectrumData { get { return _spectrumData; } }
 
 
-
         // 计算 FFT 使用 Cooley-Tukey 算法
         public Complex[] ComputeFFT(Complex[] data)
         {
+            // 获取输入数据的长度
             int N = data.Length;
 
+            // 如果数据长度小于等于 1，直接返回原数据
+            // 因为长度为 1 或 0 的序列不需要进行 FFT 计算
             if (N <= 1)
                 return data;
 
+            // 创建两个数组，分别存储输入数据中的偶数项和奇数项
             Complex[] even = new Complex[N / 2];
             Complex[] odd = new Complex[N / 2];
+
+            // 将输入数据的偶数项和奇数项分别存储到 even 和 odd 数组中
             for (int i = 0; i < N / 2; i++)
             {
                 even[i] = data[2 * i];
                 odd[i] = data[2 * i + 1];
             }
 
+            // 递归调用 ComputeFFT 方法，对偶数项和奇数项分别进行 FFT 计算
             even = ComputeFFT(even);
             odd = ComputeFFT(odd);
 
+            // 创建一个长度为 N 的数组，用于存储最终的 FFT 结果
             Complex[] result = new Complex[N];
+
+            // 合并偶数项和奇数项的 FFT 结果
             for (int k = 0; k < N / 2; k++)
             {
+                // 计算旋转因子 t
+                // Complex.Exp 是计算复数的指数函数
+                // -2 * Math.PI * Complex.ImaginaryOne * k / N 是旋转因子的指数部分
                 Complex t = Complex.Exp(-2 * Math.PI * Complex.ImaginaryOne * k / N) * odd[k];
+
+                // 计算结果的前半部分
                 result[k] = even[k] + t;
+
+                // 计算结果的后半部分
                 result[k + N / 2] = even[k] - t;
             }
 
+            // 返回最终的 FFT 结果
             return result;
         }
-
         // 计算音量
         private float CalculateVolume(float[] samples, int channelIndex)
         {
@@ -776,7 +794,10 @@ namespace AudioManager
         public Complex[] PerformFFT(Complex[] data, int targetLength)
         {
 
-            ApplyFlattopWindow(data);//平顶窗
+            //ApplyFlattopWindow(data);//平顶窗
+                                     //ApplyHammingWindow(data);
+                                     //ApplyKaiserWindow(data);
+
             return ComputeFFT(data);//计算FFT
         }
 
@@ -912,19 +933,47 @@ namespace AudioManager
                 _slidingWindowRight = new SlidingWindow(_slidingWindowSize);
             }
             
-            float[] extCL = new float[_zeroPadSize];
-            float[] extCR = new float[_zeroPadSize];
+            float[] zeroPadLeftChannel = new float[_zeroPadSize];
+            float[] zeroPadRightChannel = new float[_zeroPadSize];
             switch (_fillDataType)
             {
+                case FillDataType.ZEROPAD:
+                    Array.Copy(leftChannel, zeroPadLeftChannel, leftChannel.Length);
+                    Array.Copy(rightChannel, zeroPadRightChannel, rightChannel.Length);
+                    ProcessFFT(zeroPadLeftChannel, zeroPadRightChannel);
+                    break;
                 case FillDataType.SILDINGWINDOW:
                     _zeroPadSize = _slidingWindowSize;
                     _slidingWindowLeft.AddData(leftChannel);
                     _slidingWindowRight.AddData(rightChannel);
-                 
                     ProcessFFT(_slidingWindowLeft.GetWindow(), _slidingWindowRight.GetWindow());
-              
-               
                     break;
+
+                case FillDataType.SILDINGWINDOW_AND_ZEROPAD:
+                    if(_slidingWindowSize > _zeroPadSize){
+                        throw new Exception("先进行滑动窗口尺寸不能大于零填充尺寸");
+                        //break;
+                    }
+                    _slidingWindowLeft.AddData(leftChannel);
+                    _slidingWindowRight.AddData(rightChannel);
+                    Array.Copy(_slidingWindowLeft.GetWindow(), zeroPadLeftChannel, _slidingWindowLeft.GetWindow().Length);
+                    Array.Copy(_slidingWindowRight.GetWindow(), zeroPadRightChannel, _slidingWindowRight.GetWindow().Length);
+                    ProcessFFT(zeroPadLeftChannel, zeroPadRightChannel);
+                    break;
+
+                case FillDataType.ZEROPAD_AND_SILDINGWINDOW:
+                    if (  _zeroPadSize > _slidingWindowSize)
+                    {
+                        throw new Exception("先进行零填充,零填充数组尺寸不能大于滑动窗口尺寸");
+                        //break;
+                    }
+                    Array.Copy(leftChannel, zeroPadLeftChannel, leftChannel.Length);
+                    Array.Copy(rightChannel, zeroPadRightChannel, rightChannel.Length);
+                    _slidingWindowLeft.AddData(zeroPadLeftChannel);
+                    _slidingWindowRight.AddData(zeroPadRightChannel);
+                    ProcessFFT(_slidingWindowLeft.GetWindow(), _slidingWindowRight.GetWindow());
+                    break;
+
                 case FillDataType.NONE:
                     ProcessFFT(leftChannel, rightChannel);
                     break;
@@ -966,9 +1015,6 @@ namespace AudioManager
 
             return interpolatedData;
         }
-
-
-
     }
 
 

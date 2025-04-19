@@ -1,22 +1,15 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
-using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Markup.Xaml;
-using Avalonia.Rendering;
-using Avalonia.VisualTree;
-using Avalonia.Platform;
 using AudioManager;
 using static AudioManager.FFT;
 using System;
 using System.Threading.Tasks;
 using System.Threading;
-using AvaloniaFFTApp.ViewModels;
 using Avalonia.Data;
 using Avalonia.Collections;
-using Avalonia.Controls.Templates;
-using DynamicData;
 namespace AvaloniaFFTApp.Views
 {
     public partial class MainView : UserControl
@@ -31,14 +24,16 @@ namespace AvaloniaFFTApp.Views
         private ASIO asio;
         private WASAPI wasapi;
         DirectSound directSound;
+        private float volumeLeft;
+        private float volumeRight;
         private float[] frequenciesLeft;
         private float[] frequenciesRight;
         private float[] amplitudesLeft;
         private float[] amplitudesRight;
         private int sampleRate = 48000;
         double yScale = 4;
-        int zeroPadSize = 8196;
-        int windowSize = 4096;
+        //int zeroPadSize = 8196;
+        //int windowSize = 16384;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
         const double maxFrequency = 4096;
@@ -147,12 +142,13 @@ namespace AvaloniaFFTApp.Views
             {
                 string? selectedItem = comboBox.SelectedItem as string;
                 fft = new FFT(sampleRate); //初始化FFT
-                fft.slidingWindowSize = windowSize;
-                fft.zeroPadSize = zeroPadSize;
-                fft.fillDataType = FillDataType.SILDINGWINDOW;
+                //不定义使用默认配置
+                //fft.slidingWindowSize = windowSize;
+                //fft.zeroPadSize = zeroPadSize;
+                //fft.fillDataType = FillDataType.ZEROPAD_AND_SILDINGWINDOW;
                 switch (audioType)
                 {
-
+                    //选择不同的设备类型 执行不同的初始化与获取下一步所需数据
                     case AudioType.ASIO:
                        
                         if (selectedItem == null) {
@@ -251,6 +247,8 @@ namespace AvaloniaFFTApp.Views
         }
         private void UpdateData(SpectrumData spectrumData)
         {
+            volumeLeft = spectrumData.volumeLeft;
+            volumeRight = spectrumData.volumeRight;
             frequenciesLeft = spectrumData.frequencies;
             frequenciesRight = spectrumData.frequencies;
             amplitudesLeft = spectrumData.amplitudesLeft;

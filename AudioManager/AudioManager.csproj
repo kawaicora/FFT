@@ -7,25 +7,22 @@
 
   <ItemGroup>
     <Reference Include="NAudio">
-      <HintPath>D:\VRChatProjects\Avatar_Change\Assets\Plugins\NAudio\NAudio.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Asio">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Asio.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.Asio.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Core">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Core.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.Core.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Midi">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Midi.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.Midi.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.Wasapi">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.Wasapi.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.Wasapi.dll</HintPath>
     </Reference>
     <Reference Include="NAudio.WinMM">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NAudio.WinMM.dll</HintPath>
-    </Reference>
-    <Reference Include="NWaves">
-      <HintPath>D:\UnityProject\AUDIO_FFT\Assets\Plugins\NAudio\NWaves.dll</HintPath>
+      <HintPath>..\Plugins\NAudio.WinMM.dll</HintPath>
     </Reference>
   </ItemGroup>
 
