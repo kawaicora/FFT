@@ -14,12 +14,12 @@ namespace AvaloniaFFTApp.Views
 {
     public partial class MainView : UserControl
     {
-        enum AudioType { 
+        enum AudioType {
             ASIO,
             DirectSound,
             WASAPI
         }
-        private AudioType audioType; 
+        private AudioType audioType;
         private FFT fft;
         private ASIO asio;
         private WASAPI wasapi;
@@ -86,7 +86,7 @@ namespace AvaloniaFFTApp.Views
                     case "DirectSound":
                         audioType = AudioType.DirectSound;
                         break;
-                }   
+                }
 
                 var deviceComboBox = this.Find<ComboBox>("DeviceSelectBox");
                 if (deviceComboBox == null)
@@ -99,9 +99,9 @@ namespace AvaloniaFFTApp.Views
                 {
                     deviceComboBox.ItemsSource = new AvaloniaList<string>();
                 }
-                
+
                 var items = deviceComboBox.ItemsSource as AvaloniaList<string>;
-                
+
                 if (items != null)
                 {
                     items.Clear();
@@ -148,7 +148,7 @@ namespace AvaloniaFFTApp.Views
                 {
                     //选择不同的设备类型 执行不同的初始化与获取下一步所需数据
                     case AudioType.ASIO:
-                       
+
                         if (selectedItem == null) {
                             return;
                         }
@@ -187,8 +187,8 @@ namespace AvaloniaFFTApp.Views
 
                         break;
                     case AudioType.WASAPI:
-                   
-                        
+
+
                         wasapi = new WASAPI(selectedItem, sampleRate);
                         wasapi.onDataRecevice += fft.OnDataRecevice;
                         wasapi.Stop();
@@ -211,7 +211,7 @@ namespace AvaloniaFFTApp.Views
             {
                 var selectedItem = comboBox.SelectedItem as string;
                 // 这里添加选定选项后的回调逻辑
-       
+
                 var currentChannelIndexOffset = Array.IndexOf(asio.GetAllOutputChannel(), selectedItem);
                 asio.Stop();
                 asio.Play(currentChannelIndexOffset);
@@ -248,7 +248,7 @@ namespace AvaloniaFFTApp.Views
             volumeLeft = spectrumData.volumeLeft;
             volumeRight = spectrumData.volumeRight;
             frequencies = spectrumData.frequencies;
-    
+
             amplitudesLeft = spectrumData.amplitudesLeft;
             amplitudesRight = spectrumData.amplitudesRight;
             // 在 UI 线程更新图形
@@ -263,7 +263,7 @@ namespace AvaloniaFFTApp.Views
         }
 
 
-   
+
 
 
         private void DrawGraph()
@@ -365,6 +365,44 @@ namespace AvaloniaFFTApp.Views
             }
         }
 
-    }
-    }
+    
+
+        public static float[] InterpolateData(float[] x, float[] y, int targetLength)
+        {
+            float[] interpolatedData = new float[targetLength];
+            double step = (x[x.Length - 1] - x[0]) / (targetLength - 1);
+
+            for (int i = 0; i < targetLength; i++)
+            {
+                double xVal = x[0] + i * step;
+                int j = Array.BinarySearch(x, (float)xVal);
+                if (j < 0)
+                {
+                    j = ~j - 1;
+                }
+
+
+                if (j >= x.Length - 1)
+                {
+                    interpolatedData[i] = y[x.Length - 1];
+                }
+                else
+                {
+                    double t = (xVal - x[j]) / (x[j + 1] - x[j]);
+                    interpolatedData[i] = (float)((1 - t) * y[j] + t * y[j + 1]);
+                }
+            }
+
+            // 确保频率数组的最后一个元素不为 0
+            if (interpolatedData[targetLength - 1] == 0)
+            {
+                interpolatedData[targetLength - 1] = interpolatedData[targetLength - 2];
+            }
+
+            return interpolatedData;
+        }
+
+
+    } 
+}
 
