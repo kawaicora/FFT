@@ -26,8 +26,7 @@ namespace AvaloniaFFTApp.Views
         DirectSound directSound;
         private float volumeLeft;
         private float volumeRight;
-        private float[] frequenciesLeft;
-        private float[] frequenciesRight;
+        private float[] frequencies;
         private float[] amplitudesLeft;
         private float[] amplitudesRight;
         private int sampleRate = 48000;
@@ -36,8 +35,8 @@ namespace AvaloniaFFTApp.Views
         //int windowSize = 16384;
         // 设定要绘制的频率范围
         const double minFrequency = 0;
-        const double maxFrequency = 4096;
-        bool drawRectangles = false;
+        const double maxFrequency = 10000;
+        bool drawRectangles = false;  //绘制矩形还是波形
         double rectangleWidth = 6;
         private IBinding iBinding;
         private const int consoleWidth = 800;
@@ -143,9 +142,8 @@ namespace AvaloniaFFTApp.Views
                 string? selectedItem = comboBox.SelectedItem as string;
                 fft = new FFT(sampleRate); //初始化FFT
                 //不定义使用默认配置
-                //fft.slidingWindowSize = windowSize;
-                //fft.zeroPadSize = zeroPadSize;
-                //fft.fillDataType = FillDataType.ZEROPAD_AND_SILDINGWINDOW;
+                fft.addWindow = false;
+                fft.scaleSpectrumData = true;
                 switch (audioType)
                 {
                     //选择不同的设备类型 执行不同的初始化与获取下一步所需数据
@@ -249,8 +247,8 @@ namespace AvaloniaFFTApp.Views
         {
             volumeLeft = spectrumData.volumeLeft;
             volumeRight = spectrumData.volumeRight;
-            frequenciesLeft = spectrumData.frequencies;
-            frequenciesRight = spectrumData.frequencies;
+            frequencies = spectrumData.frequencies;
+    
             amplitudesLeft = spectrumData.amplitudesLeft;
             amplitudesRight = spectrumData.amplitudesRight;
             // 在 UI 线程更新图形
@@ -263,93 +261,110 @@ namespace AvaloniaFFTApp.Views
         {
             DrawGraph();
         }
+
+
+   
+
+
         private void DrawGraph()
         {
             var canvas = this.FindControl<Canvas>("canvas");
             if (canvas != null)
             {
-                // 清空画布
-                canvas.Children.Clear();
-
-                if (frequenciesLeft == null || amplitudesLeft == null)
-                    return; // 如果数据无效，直接返回
-
-                int dataLength = frequenciesLeft.Length;
-
-                // 计算 X 轴缩放比例：画布宽度 / (最大频率 - 最小频率)
-                double xScale = canvas.Bounds.Width / (maxFrequency - minFrequency);
-
-                // Y 轴缩放比例：画布高度 / 2
-
-                // 对振幅数据进行插值处理
-                int targetLength = dataLength * 4; // 目标点数，可以根据需要调整
-                float[] interpolatedAmplitudesLeft = InterpolateData(frequenciesLeft, amplitudesLeft, targetLength);
-                float[] interpolatedFrequenciesLeft = InterpolateData(frequenciesLeft, frequenciesLeft, targetLength);
-      
-
-                if (drawRectangles)
+                if (frequencies != null && amplitudesLeft != null)
                 {
-                    // 绘制方块
-                    for (int i = 0; i < targetLength; i++)
-                    {
-                        // 计算当前数据点的频率值
-                        double frequency = interpolatedFrequenciesLeft[i];
-
-                        if (frequency >= minFrequency && frequency <= maxFrequency)
-                        {
-                            // 映射频率值到 X 坐标
-                            double x = (frequency - minFrequency) * xScale;
-
-                            // 映射振幅值到 Y 坐标
-                            double height = interpolatedAmplitudesLeft[i] * yScale;
-                            double y = canvas.Bounds.Height - height;
-
-                            var rectangle = new Rectangle
-                            {
-                                Fill = Brushes.Red,
-                                Width = rectangleWidth,
-                                Height = height,
-                                Margin = new Thickness(x, y, 0, 0)
-                            };
-                            canvas.Children.Add(rectangle);
-                        }
-                    }
-                }
-                else
-                {
-                    // 创建用于绘制频率图和振幅图的 Polyline
-                    var amplitudeLine = new Polyline
-                    {
-                        Stroke = Brushes.Red,
-                        StrokeThickness = 1,
-                        Points = new Avalonia.Collections.AvaloniaList<Point>()
-                    };
-
-                    // 绘制振幅线条：筛选并映射到画布
-                    for (int i = 0; i < targetLength; i++)
-                    {
-                        // 计算当前数据点的频率值
-                        double frequency = interpolatedFrequenciesLeft[i];
-
-                        if (frequency >= minFrequency && frequency <= maxFrequency)
-                        {
-                            // 映射频率值到 X 坐标
-                            double x = (frequency - minFrequency) * xScale;
-
-                            // 映射振幅值到 Y 坐标
-                            double y = canvas.Bounds.Height - 5 - interpolatedAmplitudesLeft[i] * yScale;
-
-                            amplitudeLine.Points.Add(new Point(x, y));
-                        }
-                    }
-                    // 添加到画布
-                    canvas.Children.Add(amplitudeLine);
+                    //DrawFFTBarChart(canvas, frequenciesLeft, amplitudesLeft, minFrequency, maxFrequency, rectangleWidth, yScale);
+                    DrawFFT(canvas, frequencies, amplitudesLeft, minFrequency, maxFrequency, rectangleWidth, yScale);
                 }
             }
         }
 
 
 
+
+        private void DrawFFT(Canvas canvas, float[] frequencies, float[] amplitudes, double minFrequency, double maxFrequency, double rectangleWidth, double yScale)
+        {
+            if (canvas == null || frequencies == null || amplitudes == null)
+                return;
+            canvas.Children.Clear();
+            if (frequencies == null || amplitudesLeft == null)
+                return; // 如果数据无效，直接返回
+
+
+
+            int dataLength = frequencies.Length;
+
+            // 计算 X 轴缩放比例：画布宽度 / (最大频率 - 最小频率)
+            double xScale = canvas.Bounds.Width / (maxFrequency - minFrequency);
+
+            // Y 轴缩放比例：画布高度 / 2
+
+            // 对振幅数据进行插值处理
+            //int targetLength = dataLength * 4; // 目标点数，可以根据需要调整
+            //float[] interpolatedAmplitudesLeft = InterpolateData(frequenciesLeft, amplitudesLeft, targetLength);
+            //float[] interpolatedFrequenciesLeft = InterpolateData(frequenciesLeft, frequenciesLeft, targetLength);
+
+
+            if (drawRectangles)
+            {
+                // 绘制方块
+                for (int i = 0; i < frequencies.Length; i++)
+                {
+                    // 计算当前数据点的频率值
+                    double frequency = frequencies[i];
+
+                    if (frequency >= minFrequency && frequency <= maxFrequency)
+                    {
+                        // 映射频率值到 X 坐标
+                        double x = (frequency - minFrequency) * xScale;
+
+                        // 映射振幅值到 Y 坐标
+                        double height = amplitudesLeft[i] * yScale;
+                        double y = canvas.Bounds.Height - height;
+
+                        var rectangle = new Rectangle
+                        {
+                            Fill = Brushes.Red,
+                            Width = rectangleWidth,
+                            Height = height,
+                            Margin = new Thickness(x, y, 0, 0)
+                        };
+                        canvas.Children.Add(rectangle);
+                    }
+                }
+            }
+            else
+            {
+                // 创建用于绘制频率图和振幅图的 Polyline
+                var amplitudeLine = new Polyline
+                {
+                    Stroke = Brushes.Red,
+                    StrokeThickness = 1,
+                    Points = new Avalonia.Collections.AvaloniaList<Point>()
+                };
+
+                // 绘制振幅线条：筛选并映射到画布
+                for (int i = 0; i < frequencies.Length; i++)
+                {
+                    // 计算当前数据点的频率值
+                    double frequency = frequencies[i];
+
+                    if (frequency >= minFrequency && frequency <= maxFrequency)
+                    {
+                        // 映射频率值到 X 坐标
+                        double x = (frequency - minFrequency) * xScale;
+
+                        // 映射振幅值到 Y 坐标
+                        double y = canvas.Bounds.Height - 5 - amplitudesLeft[i] * yScale;
+
+                        amplitudeLine.Points.Add(new Point(x, y));
+                    }
+                }
+                // 添加到画布
+                canvas.Children.Add(amplitudeLine);
+            }
+        }
+
     }
-}
+    }
 

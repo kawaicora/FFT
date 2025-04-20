@@ -8,6 +8,7 @@ using NAudio.CoreAudioApi;
 using System.Linq;
 
 using WaveFormat = NAudio.Wave.WaveFormat;
+using System.Threading.Tasks;
 
 namespace AudioManager
 {
@@ -291,6 +292,7 @@ namespace AudioManager
             // 初始化 WASAPI 捕获
             _wasapiCapture = new WasapiCapture(_device);
             _wasapiCapture.DataAvailable += OnDataAvailable;
+            
 
             // 初始化缓冲区
             _waveProvider = new BufferedWaveProvider(waveFormat)
@@ -405,19 +407,31 @@ namespace AudioManager
         {
             _sampleRate = sampleRate;
             // Initialize ASIO driver
-            _asioOut = new AsioOut(asioDriverName);
-
-            _asioOut.AudioAvailable += OnAudioAvailable;
-
+            
             // Initialize buffer
             _waveProvider = new BufferedWaveProvider(new WaveFormat(_sampleRate, 24, 2))
             {
                 DiscardOnBufferOverflow = true
             };
+            try
+            {
+                _asioOut = new AsioOut(asioDriverName);
 
-            _asioOut.InitRecordAndPlayback(null, 2, _sampleRate);
+                _asioOut.AudioAvailable += OnAudioAvailable;
+      
+
+
+
+                _asioOut.InitRecordAndPlayback(null, 2, _sampleRate);
+                
+                
+            }
+            catch (Exception e) {
+                throw e;
+            }
+            
         }
-
+  
         private void OnAudioAvailable(object sender, AsioAudioAvailableEventArgs e)
         {
             float[] buffer = new float[_sampleRate];
@@ -562,9 +576,10 @@ namespace AudioManager
         private int _zeroPadSize = 8196;
         private int _slidingWindowSize = 16384;
         private int _sampleRate = 48000;
-
+        private bool _addWindow = true;
         Complex[]? leftComplex = null;
         Complex[]? rightComplex = null;
+      
 
         public struct SpectrumData
         {
@@ -576,6 +591,17 @@ namespace AudioManager
         }
         private SpectrumData _spectrumData;
 
+
+
+        private bool _scaleSpectrumData = false;
+
+        public bool scaleSpectrumData
+        {
+            set
+            {
+                _scaleSpectrumData = value;
+            }
+        }
         // Constructor
         public FFT(int sampleRate = 48000)
         {
@@ -611,6 +637,13 @@ namespace AudioManager
             {
                 _slidingWindowSize = value;
             }
+        }
+
+        public bool addWindow{
+            set
+            {
+                _addWindow = value;
+            }    
         }
         ~FFT()
         {
@@ -793,8 +826,11 @@ namespace AudioManager
         // 执行FFT
         public Complex[] PerformFFT(Complex[] data, int targetLength)
         {
-
-            //ApplyFlattopWindow(data);//平顶窗
+            if (_addWindow)
+            {
+                ApplyFlattopWindow(data);//平顶窗
+            }
+            
                                      //ApplyHammingWindow(data);
                                      //ApplyKaiserWindow(data);
 
@@ -835,7 +871,7 @@ namespace AudioManager
             return frequencies;
         }
         // 平滑数据
-        private void SmoothData(float[] data, int smoothingFactor)
+        public void SmoothData(float[] data, int smoothingFactor)
         {
             if (smoothingFactor <= 1) return;  // No smoothing needed if factor is 1 or less
 
@@ -900,7 +936,7 @@ namespace AudioManager
             float[] leftDecibels = ConvertToMagnitude(leftFFT);
             float[] rightDecibels = ConvertToMagnitude(rightFFT);
 
-            for (int i = 0; i < _spectrumData.frequencies.Length; i++)
+            for (int i = 0; i < _spectrumData.frequencies.Length/2; i++)
             {
                 _spectrumData.amplitudesLeft[i] = leftDecibels[i];
                 _spectrumData.amplitudesRight[i] = rightDecibels[i];
@@ -909,6 +945,9 @@ namespace AudioManager
             _complexArrayPool.Return(leftComplex);
             _complexArrayPool.Return(rightComplex);
         }
+
+
+
 
         public void OnDataRecevice(float[] buffer)
         {
@@ -977,44 +1016,22 @@ namespace AudioManager
                 case FillDataType.NONE:
                     ProcessFFT(leftChannel, rightChannel);
                     break;
+
+               
              
             }
+            if (this._scaleSpectrumData)
+            {
+                //ScaleSpectrumData();
+            }
         }
 
 
-        public static float[] InterpolateData(float[] x, float[] y, int targetLength)
-        {
-            float[] interpolatedData = new float[targetLength];
-            double step = (x[x.Length - 1] - x[0]) / (targetLength - 1);
 
-            for (int i = 0; i < targetLength; i++)
-            {
-                double xVal = x[0] + i * step;
-                int j = Array.BinarySearch(x, (float)xVal);
-                if (j < 0)
-                {
-                    j = ~j - 1;
-                }
+      
 
-                if (j >= x.Length - 1)
-                {
-                    interpolatedData[i] = y[x.Length - 1];
-                }
-                else
-                {
-                    double t = (xVal - x[j]) / (x[j + 1] - x[j]);
-                    interpolatedData[i] = (float)((1 - t) * y[j] + t * y[j + 1]);
-                }
-            }
 
-            // 确保频率数组的最后一个元素不为 0
-            if (interpolatedData[targetLength - 1] == 0)
-            {
-                interpolatedData[targetLength - 1] = interpolatedData[targetLength - 2];
-            }
 
-            return interpolatedData;
-        }
     }
 
 
